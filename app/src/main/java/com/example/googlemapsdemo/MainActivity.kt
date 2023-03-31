@@ -57,14 +57,11 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.maps.android.compose.*
-import kotlinx.coroutines.launch
 
 private const val TAG = "BasicMapActivity"
 
-val singapore = LatLng(1.35, 103.87)
-val singapore2 = LatLng(1.40, 103.77)
-val singapore3 = LatLng(1.45, 103.77)
-val defaultCameraPosition = CameraPosition.fromLatLngZoom(singapore, 11f)
+val vancouver = LatLng(49.2827, -123.1207)
+val defaultCameraPosition = CameraPosition.fromLatLngZoom(vancouver, 11f)
 
 class MainActivity : ComponentActivity() {
 
@@ -85,6 +82,7 @@ class MainActivity : ComponentActivity() {
                         isMapLoaded = true
                     },
                 )
+                // display progress indicator while map is loading
                 if (!isMapLoaded) {
                     AnimatedVisibility(
                         modifier = Modifier
@@ -112,17 +110,16 @@ fun GoogleMapView(
     onMapLoaded: () -> Unit = {},
     content: @Composable () -> Unit = {}
 ) {
-    val singaporeState = rememberMarkerState(position = singapore)
-    val singapore2State = rememberMarkerState(position = singapore2)
-    val singapore3State = rememberMarkerState(position = singapore3)
-    var circleCenter by remember { mutableStateOf(singapore) }
-    if (singaporeState.dragState == DragState.END) {
-        circleCenter = singaporeState.position
+    // move circle to marker's current state when done dragging
+    val markerState = rememberMarkerState(position = vancouver)
+    var circleCenter by remember { mutableStateOf(vancouver) }
+    if (markerState.dragState == DragState.END) {
+        circleCenter = markerState.position
     }
 
+    // define map state variables and initialize default state
     var uiSettings by remember { mutableStateOf(MapUiSettings(compassEnabled = false)) }
-    var shouldAnimateZoom by remember { mutableStateOf(true) }
-    var ticker by remember { mutableStateOf(0) }
+    // var shouldAnimateZoom by remember { mutableStateOf(true) }
     var mapProperties by remember {
         mutableStateOf(MapProperties(mapType = MapType.NORMAL))
     }
@@ -139,184 +136,39 @@ fun GoogleMapView(
                 Log.d(TAG, "POI clicked: ${it.name}")
             }
         ) {
-            // Drawing on the map is accomplished with a child-based API
+            // Handler for marker click. Shows info window and logs coordinates or marker.
             val markerClick: (Marker) -> Boolean = {
-                Log.d(TAG, "${it.title} was clicked")
-                cameraPositionState.projection?.let { projection ->
-                    Log.d(TAG, "The current projection is: $projection")
-                }
+                Log.d(TAG, "The marker is at coordinates " +
+                        "(${it.position.latitude}, ${it.position.longitude})")
+                it.showInfoWindow()
                 false
             }
-            MarkerInfoWindowContent(
-                state = singaporeState,
-                title = "Zoom in has been tapped $ticker times.",
-                onClick = markerClick,
-                draggable = true,
-            ) {
-                Text(it.title ?: "Title", color = Color.Red)
+            // Handler for marker info window click. Closes info window
+            val closeInfoWindow: (Marker) -> Unit = {
+                it.hideInfoWindow()
             }
+
+            // marker info window
             MarkerInfoWindowContent(
-                state = singapore2State,
-                title = "Marker with custom info window.\nZoom in has been tapped $ticker times.",
-                icon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE),
+                state = markerState,
+                title = "The marker is at coordinates " +
+                        "(${markerState.position.latitude}, ${markerState.position.longitude})",
                 onClick = markerClick,
+                onInfoWindowClick = closeInfoWindow,
+                draggable = true
             ) {
-                Text(it.title ?: "Title", color = Color.Blue)
+                Text(it.title ?: "Marker was clicked!", color = Color.Red)
             }
-            Marker(
-                state = singapore3State,
-                title = "Marker in Singapore",
-                onClick = markerClick
-            )
             Circle(
                 center = circleCenter,
                 fillColor = MaterialTheme.colors.secondary,
                 strokeColor = MaterialTheme.colors.secondaryVariant,
-                radius = 1000.0,
+                radius = 500.0, // radius in m surrounding the marker
             )
             content()
         }
-
-    }
-    Column {
-        MapTypeControls(onMapTypeClick = {
-            Log.d("GoogleMap", "Selected map type $it")
-            mapProperties = mapProperties.copy(mapType = it)
-        })
-        Row {
-            MapButton(
-                text = "Reset Map",
-                onClick = {
-                    mapProperties = mapProperties.copy(mapType = MapType.NORMAL)
-                    cameraPositionState.position = defaultCameraPosition
-                    singaporeState.position = singapore
-                    singaporeState.hideInfoWindow()
-                }
-            )
-            MapButton(
-                text = "Toggle Map",
-                onClick = { mapVisible = !mapVisible },
-                modifier = Modifier.testTag("toggleMapVisibility"),
-            )
-        }
-        val coroutineScope = rememberCoroutineScope()
-        ZoomControls(
-            shouldAnimateZoom,
-            uiSettings.zoomControlsEnabled,
-            onZoomOut = {
-                if (shouldAnimateZoom) {
-                    coroutineScope.launch {
-                        cameraPositionState.animate(CameraUpdateFactory.zoomOut())
-                    }
-                } else {
-                    cameraPositionState.move(CameraUpdateFactory.zoomOut())
-                }
-            },
-            onZoomIn = {
-                if (shouldAnimateZoom) {
-                    coroutineScope.launch {
-                        cameraPositionState.animate(CameraUpdateFactory.zoomIn())
-                    }
-                } else {
-                    cameraPositionState.move(CameraUpdateFactory.zoomIn())
-                }
-                ticker++
-            },
-            onCameraAnimationCheckedChange = {
-                shouldAnimateZoom = it
-            },
-            onZoomControlsCheckedChange = {
-                uiSettings = uiSettings.copy(zoomControlsEnabled = it)
-            }
-        )
-        DebugView(cameraPositionState, singaporeState)
     }
 }
-
-@Composable
-private fun MapTypeControls(
-    onMapTypeClick: (MapType) -> Unit
-) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .horizontalScroll(state = ScrollState(0)),
-        horizontalArrangement = Arrangement.Center
-    ) {
-        MapType.values().forEach {
-            MapTypeButton(type = it) { onMapTypeClick(it) }
-        }
-    }
-}
-
-@Composable
-private fun MapTypeButton(type: MapType, onClick: () -> Unit) =
-    MapButton(text = type.toString(), onClick = onClick)
-
-@Composable
-private fun ZoomControls(
-    isCameraAnimationChecked: Boolean,
-    isZoomControlsEnabledChecked: Boolean,
-    onZoomOut: () -> Unit,
-    onZoomIn: () -> Unit,
-    onCameraAnimationCheckedChange: (Boolean) -> Unit,
-    onZoomControlsCheckedChange: (Boolean) -> Unit,
-) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
-        MapButton("-", onClick = { onZoomOut() })
-        MapButton("+", onClick = { onZoomIn() })
-        Column(verticalArrangement = Arrangement.Center) {
-            Text(text = "Camera Animations On?")
-            Switch(
-                isCameraAnimationChecked,
-                onCheckedChange = onCameraAnimationCheckedChange,
-                modifier = Modifier.testTag("cameraAnimations"),
-            )
-            Text(text = "Zoom Controls On?")
-            Switch(
-                isZoomControlsEnabledChecked,
-                onCheckedChange = onZoomControlsCheckedChange
-            )
-        }
-    }
-}
-
-@Composable
-private fun MapButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Button(
-        modifier = modifier.padding(4.dp),
-        colors = ButtonDefaults.buttonColors(
-            backgroundColor = MaterialTheme.colors.onPrimary,
-            contentColor = MaterialTheme.colors.primary
-        ),
-        onClick = onClick
-    ) {
-        Text(text = text, style = MaterialTheme.typography.body1)
-    }
-}
-
-@Composable
-private fun DebugView(
-    cameraPositionState: CameraPositionState,
-    markerState: MarkerState
-) {
-    Column(
-        Modifier
-            .fillMaxWidth(),
-        verticalArrangement = Arrangement.Center
-    ) {
-        val moving =
-            if (cameraPositionState.isMoving) "moving" else "not moving"
-        Text(text = "Camera is $moving")
-        Text(text = "Camera position is ${cameraPositionState.position}")
-        Spacer(modifier = Modifier.height(4.dp))
-        val dragging =
-            if (markerState.dragState == DragState.DRAG) "dragging" else "not dragging"
-        Text(text = "Marker is $dragging")
-        Text(text = "Marker position is ${markerState.position}")
-    }
-}
-
 
 @Preview
 @Composable
