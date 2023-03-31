@@ -57,6 +57,7 @@ import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.maps.android.compose.*
+import kotlinx.coroutines.launch
 
 private const val TAG = "BasicMapActivity"
 
@@ -116,7 +117,6 @@ fun GoogleMapView(
     if (markerState.dragState == DragState.END) {
         circleCenter = markerState.position
     }
-
     // define map state variables and initialize default state
     var uiSettings by remember { mutableStateOf(MapUiSettings(compassEnabled = false)) }
     var mapProperties by remember {
@@ -190,6 +190,14 @@ fun GoogleMapView(
             Log.d(TAG, "Selected map type $it")
             mapProperties = mapProperties.copy(mapType = it)
         })
+
+        // toggle zoom controls
+        ZoomControls(
+            uiSettings.zoomControlsEnabled,
+            onZoomControlsCheckedChange = {
+                uiSettings = uiSettings.copy(zoomControlsEnabled = it)
+            }
+        )
     }
 }
 
@@ -226,6 +234,18 @@ private fun MapButton(text: String, onClick: () -> Unit, modifier: Modifier = Mo
     ) {
         Text(text = text, style = MaterialTheme.typography.body1)
     }
+}
+
+@Composable
+private fun ZoomControls(
+    isZoomControlsEnabledChecked: Boolean,
+    onZoomControlsCheckedChange: (Boolean) -> Unit,
+) {
+    Text(text = "Zoom Controls On?")
+    Switch(
+        isZoomControlsEnabledChecked,
+        onCheckedChange = onZoomControlsCheckedChange
+    )
 }
 
 @Preview
