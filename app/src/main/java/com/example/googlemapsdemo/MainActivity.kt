@@ -166,7 +166,65 @@ fun GoogleMapView(
                 radius = 500.0, // radius in m surrounding the marker
             )
             content()
+
+            // hide/show map
+            MapButton(
+                text = "Hide/Show Map",
+                onClick = { mapVisible = !mapVisible },
+                modifier = Modifier.testTag("toggleMapVisibility"),
+            )
+            // map reset button
+            MapButton(
+                text = "Reset Map",
+                onClick = {
+                    mapProperties = mapProperties.copy(mapType = MapType.NORMAL)
+                    cameraPositionState.position = defaultCameraPosition
+                    markerState.position = vancouver
+                    markerState.hideInfoWindow()
+                }
+            )
+            // generate other map type control buttons
+            // log the type of map overlay chosen
+            MapTypeControls(onMapTypeClick = {
+                Log.d(TAG, "Selected map type $it")
+                mapProperties = mapProperties.copy(mapType = it)
+            })
         }
+    }
+}
+
+@Composable
+private fun MapTypeControls(
+    onMapTypeClick: (MapType) -> Unit
+) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .horizontalScroll(state = ScrollState(0)),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        MapType.values().forEach {
+            MapTypeButton(type = it) { onMapTypeClick(it) }
+        }
+    }
+}
+
+@Composable
+private fun MapTypeButton(type: MapType, onClick: () -> Unit) =
+    MapButton(text = type.toString(), onClick = onClick)
+
+
+@Composable
+private fun MapButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        modifier = modifier.padding(4.dp),
+        colors = ButtonDefaults.buttonColors(
+            backgroundColor = MaterialTheme.colors.onPrimary,
+            contentColor = MaterialTheme.colors.primary
+        ),
+        onClick = onClick
+    ) {
+        Text(text = text, style = MaterialTheme.typography.body1)
     }
 }
 
