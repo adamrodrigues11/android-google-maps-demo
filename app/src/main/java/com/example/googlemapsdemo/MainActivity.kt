@@ -119,7 +119,6 @@ fun GoogleMapView(
 
     // define map state variables and initialize default state
     var uiSettings by remember { mutableStateOf(MapUiSettings(compassEnabled = false)) }
-    // var shouldAnimateZoom by remember { mutableStateOf(true) }
     var mapProperties by remember {
         mutableStateOf(MapProperties(mapType = MapType.NORMAL))
     }
@@ -166,30 +165,31 @@ fun GoogleMapView(
                 radius = 500.0, // radius in m surrounding the marker
             )
             content()
-
-            // hide/show map
-            MapButton(
-                text = "Hide/Show Map",
-                onClick = { mapVisible = !mapVisible },
-                modifier = Modifier.testTag("toggleMapVisibility"),
-            )
-            // map reset button
-            MapButton(
-                text = "Reset Map",
-                onClick = {
-                    mapProperties = mapProperties.copy(mapType = MapType.NORMAL)
-                    cameraPositionState.position = defaultCameraPosition
-                    markerState.position = vancouver
-                    markerState.hideInfoWindow()
-                }
-            )
-            // generate other map type control buttons
-            // log the type of map overlay chosen
-            MapTypeControls(onMapTypeClick = {
-                Log.d(TAG, "Selected map type $it")
-                mapProperties = mapProperties.copy(mapType = it)
-            })
         }
+    }
+    Column() {
+        // hide/show map
+        MapButton(
+            text = "Hide/Show Map",
+            onClick = { mapVisible = !mapVisible },
+            modifier = Modifier.testTag("toggleMapVisibility"),
+        )
+        // map reset button
+        MapButton(
+            text = "Reset Map",
+            onClick = {
+                mapProperties = mapProperties.copy(mapType = MapType.NORMAL)
+                cameraPositionState.position = defaultCameraPosition
+                markerState.position = vancouver
+                markerState.hideInfoWindow()
+            }
+        )
+        // generate other map type control buttons
+        // log the type of map overlay chosen
+        MapTypeControls(onMapTypeClick = {
+            Log.d(TAG, "Selected map type $it")
+            mapProperties = mapProperties.copy(mapType = it)
+        })
     }
 }
 
