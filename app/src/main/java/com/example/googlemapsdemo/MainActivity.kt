@@ -119,7 +119,6 @@ fun GoogleMapView(
 
     // define map state variables and initialize default state
     var uiSettings by remember { mutableStateOf(MapUiSettings(compassEnabled = false)) }
-    // var shouldAnimateZoom by remember { mutableStateOf(true) }
     var mapProperties by remember {
         mutableStateOf(MapProperties(mapType = MapType.NORMAL))
     }
