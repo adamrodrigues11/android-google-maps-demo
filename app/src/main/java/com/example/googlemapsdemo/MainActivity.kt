@@ -28,10 +28,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.Button
@@ -44,20 +42,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
 import com.google.maps.android.compose.*
-import kotlinx.coroutines.launch
 
 private const val TAG = "BasicMapActivity"
 
@@ -111,12 +103,6 @@ fun GoogleMapView(
     onMapLoaded: () -> Unit = {},
     content: @Composable () -> Unit = {}
 ) {
-    // move circle to marker's current state when done dragging
-    val markerState = rememberMarkerState(position = vancouver)
-    var circleCenter by remember { mutableStateOf(vancouver) }
-    if (markerState.dragState == DragState.END) {
-        circleCenter = markerState.position
-    }
     // define map state variables and initialize default state
     var uiSettings by remember { mutableStateOf(MapUiSettings(compassEnabled = false)) }
     var mapProperties by remember {
@@ -135,35 +121,6 @@ fun GoogleMapView(
                 Log.d(TAG, "POI clicked: ${it.name}")
             }
         ) {
-            // Handler for marker click. Shows info window and logs coordinates or marker.
-            val markerClick: (Marker) -> Boolean = {
-                Log.d(TAG, "The marker is at coordinates " +
-                        "(${it.position.latitude}, ${it.position.longitude})")
-                it.showInfoWindow()
-                false
-            }
-            // Handler for marker info window click. Closes info window
-            val closeInfoWindow: (Marker) -> Unit = {
-                it.hideInfoWindow()
-            }
-
-            // marker info window
-            MarkerInfoWindowContent(
-                state = markerState,
-                title = "The marker is at coordinates " +
-                        "(${markerState.position.latitude}, ${markerState.position.longitude})",
-                onClick = markerClick,
-                onInfoWindowClick = closeInfoWindow,
-                draggable = true
-            ) {
-                Text(it.title ?: "Marker was clicked!", color = Color.Red)
-            }
-            Circle(
-                center = circleCenter,
-                fillColor = MaterialTheme.colors.secondary,
-                strokeColor = MaterialTheme.colors.secondaryVariant,
-                radius = 500.0, // radius in m surrounding the marker
-            )
             content()
         }
     }
@@ -180,8 +137,6 @@ fun GoogleMapView(
             onClick = {
                 mapProperties = mapProperties.copy(mapType = MapType.NORMAL)
                 cameraPositionState.position = defaultCameraPosition
-                markerState.position = vancouver
-                markerState.hideInfoWindow()
             }
         )
         // generate other map type control buttons
