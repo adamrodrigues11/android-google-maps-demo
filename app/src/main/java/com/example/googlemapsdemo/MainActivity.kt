@@ -24,25 +24,14 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.wrapContentSize
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Switch
-import androidx.compose.material.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -107,6 +96,11 @@ fun GoogleMapView(
 ) {
     // move circle to marker's current state when done dragging
     val markerState = rememberMarkerState(position = vancouver)
+    var circleCenter by remember { mutableStateOf(vancouver) }
+    var circleRadius by remember { mutableStateOf(1000.0f) }
+    if (markerState.dragState == DragState.END) {
+        circleCenter = markerState.position
+    }
     // define map state variables and initialize default state
     var uiSettings by remember { mutableStateOf(MapUiSettings(compassEnabled = false)) }
     var mapProperties by remember {
@@ -148,10 +142,16 @@ fun GoogleMapView(
             ) {
                 Text(it.title ?: "Marker was clicked!", color = Color.Red)
             }
+            Circle(
+                center = circleCenter,
+                fillColor = MaterialTheme.colors.secondary,
+                strokeColor = MaterialTheme.colors.secondaryVariant,
+                radius = circleRadius.toDouble(),
+            )
             content()
         }
     }
-    Column() {
+    Column {
         // hide/show map
         MapButton(
             text = "Hide/Show Map",
@@ -182,6 +182,14 @@ fun GoogleMapView(
                 uiSettings = uiSettings.copy(zoomControlsEnabled = it)
             }
         )
+
+        // circle radius controls
+        CircleRadiusControls(
+            onValueChange = {
+                circleRadius = it
+            }
+        )
+
     }
 }
 
@@ -230,6 +238,31 @@ private fun ZoomControls(
         isZoomControlsEnabledChecked,
         onCheckedChange = onZoomControlsCheckedChange
     )
+}
+
+@Composable
+fun CircleRadiusControls(
+    onValueChange: (Float) -> Unit
+) {
+    var sliderPosition by remember {
+        mutableStateOf(1000.0f)
+    }
+    Column(
+        Modifier.width(100.dp)
+    ) {
+        Slider(
+            value = sliderPosition,
+            onValueChange = {
+                sliderPosition = it
+                onValueChange(it)
+            },
+            valueRange = 1000f..200000f // in m
+        )
+        Text(
+            text = "Radius = ${(sliderPosition / 1000 ).toInt().toString()} km"
+        )
+    }
+
 }
 
 @Preview
